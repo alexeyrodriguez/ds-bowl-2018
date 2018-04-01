@@ -90,9 +90,9 @@ def flattened_trainset_ex(width, height, channels):
     X_train = np.zeros((len(train_ids), height , width, channels), dtype=np.uint8)
     Y_train = np.zeros((len(train_ids), height, width, 1), dtype=np.bool)
 
-    centers = np.zeros((len(train_ids), height, width), dtype=np.int)
-    widths = np.zeros((len(train_ids), height, width))
-    heights = np.zeros((len(train_ids), height, width))
+    centers = np.zeros((len(train_ids), height, width, 1), dtype=np.int)
+    widths = np.zeros((len(train_ids), height, width, 1))
+    heights = np.zeros((len(train_ids), height, width, 1))
 
     train_shapes = []
 
@@ -115,9 +115,9 @@ def flattened_trainset_ex(width, height, channels):
         Y_train[n] = mask
 
         mcenters, mwidths, mheights = mask_centers_sizes(masks)
-        centers[n] = mcenters
-        widths[n] = mwidths
-        heights[n] = mheights
+        centers[n] = np.expand_dims(mcenters, axis=-1)
+        widths[n] = np.expand_dims(mwidths, axis=-1)
+        heights[n] = np.expand_dims(mheights, axis=-1)
 
     return X_train, Y_train, centers, widths, heights
 
