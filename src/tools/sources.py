@@ -68,9 +68,13 @@ def bounds_center(bounds):
     return int(start_x + width / 2 - 1), int(start_y + height / 2 - 1)
 
 def mask_centers_sizes(masks):
-    centers = np.zeros(shape=masks[0].shape).astype('int')
-    widths = np.zeros(shape=masks[0].shape)
-    heights = np.zeros(shape=masks[0].shape)
+    shape = masks[0].shape
+    H, W = shape
+    centers = np.zeros(shape=shape).astype('int')
+    widths = np.zeros(shape=shape)
+    heights = np.zeros(shape=shape)
+    diffx = np.zeros(shape=shape)
+    diffy = np.zeros(shape=shape)
     for mask in masks:
         bounds = inclusive_bounds(mask)
         x, y = bounds_center(bounds)
@@ -78,8 +82,10 @@ def mask_centers_sizes(masks):
         centers[y, x] = 1
         widths[y, x] = w
         heights[y, x] = h
-    return centers, widths, heights
-
+        # Hack to easily be able to extract a mask for training time
+        diffx = diffx + (mask > 0).astype('float') * (np.outer(np.ones(H), np.arange(W)) - x + 0.01)
+        diffy = diffy + (mask > 0).astype('float') * (np.outer(np.arange(H), np.ones(W)) - y + 0.01)
+    return centers, widths, heights, diffx, diffy
 
 def flattened_trainset_ex(width, height, channels):
 
@@ -93,6 +99,8 @@ def flattened_trainset_ex(width, height, channels):
     centers = np.zeros((len(train_ids), height, width, 1), dtype=np.int)
     widths = np.zeros((len(train_ids), height, width, 1))
     heights = np.zeros((len(train_ids), height, width, 1))
+    diffx = np.zeros((len(train_ids), height, width, 1))
+    diffy = np.zeros((len(train_ids), height, width, 1))
 
     train_shapes = []
 
@@ -114,12 +122,14 @@ def flattened_trainset_ex(width, height, channels):
 
         Y_train[n] = mask
 
-        mcenters, mwidths, mheights = mask_centers_sizes(masks)
+        mcenters, mwidths, mheights, mdiffx, mdiffy = mask_centers_sizes(masks)
         centers[n] = np.expand_dims(mcenters, axis=-1)
         widths[n] = np.expand_dims(mwidths, axis=-1)
         heights[n] = np.expand_dims(mheights, axis=-1)
+        diffx[n] = np.expand_dims(mdiffx, axis=-1)
+        diffy[n] = np.expand_dims(mdiffy, axis=-1)
 
-    return X_train, Y_train, centers, widths, heights
+    return X_train, Y_train, centers, widths, heights, diffx, diffy
 
 
 def raw_trainset(ix):
