@@ -67,13 +67,6 @@ def u_net_model(width, height, channels):
 
     return model
 
-
-import keras.backend as K
-
-def mean_squared_error_masked2(y_true, y_pred):
-    mask = K.sign(K.abs(y_true))
-    return K.sum(K.square(y_pred - y_true) * K.sign(y_true), axis=-1) / (K.sum(K.sign(y_true), axis=-1) + 0.1)
-
 def mean_squared_error_masked(y_true, y_pred):
     mask = K.sign(K.abs(y_true))
     return K.sum(K.square(y_pred - y_true) * mask, axis=-1) / (K.sum(mask, axis=-1) + 0.1)
