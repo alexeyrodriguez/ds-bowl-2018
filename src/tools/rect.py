@@ -16,7 +16,18 @@ def non_empty(r):
     (x1, y1, x2, y2) = r
     return x2 > x1 and y2 > y1
 
-def overlap(r1, r2, thr=0.5):
+def overlap(r1, r2, thr=0.5, cont=0.9):
+    r12 = intersect(r1, r2)
+    return (non_empty(r12) and
+            ((area(r12) >= thr * area(r1) and
+              area(r12) >= thr * area(r2)
+              ) or
+             (area(r12) >= cont * area(r1) or
+              area(r12) >= cont * area(r2)
+              )
+            ))
+
+def overlap2(r1, r2, thr=0.5):
     r12 = intersect(r1, r2)
     return non_empty(r12) and area(r12) >= thr * area(r1) and area(r12) >= thr * area(r2)
 

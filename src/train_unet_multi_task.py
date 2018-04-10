@@ -14,7 +14,7 @@ model = unetmodel.u_net_model_ext(IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Fit model
 earlystopper = EarlyStopping(patience=5, verbose=1)
-checkpointer = ModelCheckpoint(sources.MODEL_PATH + '/model-dsbowl2018-unet-multi-task-1.h5', verbose=1, save_best_only=True)
+checkpointer = ModelCheckpoint(sources.MODEL_PATH + '/model-dsbowl2018-unet-multi-task-2.h5', verbose=1, save_best_only=True)
 results = model.fit(tx,
                     [ty, tc, tw, th, tdx, tdy],
                     validation_split=0.1,

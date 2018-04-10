@@ -21,6 +21,7 @@ from skimage import exposure as skexposure
 
 DATA_ROOT = '/data/contest_data'
 TRAIN_PATH = DATA_ROOT + '/stage1_train/'
+TEST_PATH = DATA_ROOT + '/stage1_test/'
 MODEL_PATH = '/data/models'
 
 def flattened_trainset(width, height, channels):
@@ -102,12 +103,13 @@ def flattened_trainset_ex(width, height, channels):
     diffx = np.zeros((len(train_ids), height, width, 1))
     diffy = np.zeros((len(train_ids), height, width, 1))
 
-    train_shapes = []
+    train_meta = []
+    resized_masks = []
 
     for n, id_ in tqdm(enumerate(train_ids), total=len(train_ids)):
         path = TRAIN_PATH + id_
         img = imread(path + '/images/' + id_ + '.png')[:,:,:channels]
-        train_shapes.append(img.shape)
+        train_meta.append((id_, img.shape[1], img.shape[0]))
         img = resize(img, (height, width), mode='constant', preserve_range=True)
         X_train[n] = img
         mask = np.zeros((height, width, 1), dtype=np.bool)
@@ -128,9 +130,28 @@ def flattened_trainset_ex(width, height, channels):
         heights[n] = np.expand_dims(mheights, axis=-1)
         diffx[n] = np.expand_dims(mdiffx, axis=-1)
         diffy[n] = np.expand_dims(mdiffy, axis=-1)
+        resized_masks.append(masks)
 
-    return X_train, Y_train, centers, widths, heights, diffx, diffy
+    return X_train, Y_train, centers, widths, heights, diffx, diffy, resized_masks, train_meta
 
+def flattened_testset_ex(width, height, channels):
+
+    # Get train IDs
+    test_ids = next(os.walk(TEST_PATH))[1]
+
+    # Get and resize train images and masks
+    X_test = np.zeros((len(test_ids), height , width, channels), dtype=np.uint8)
+
+    test_meta = []
+
+    for n, id_ in tqdm(enumerate(test_ids), total=len(test_ids)):
+        path = TEST_PATH + id_
+        img = imread(path + '/images/' + id_ + '.png')[:,:,:channels]
+        test_meta.append((id_, img.shape[1], img.shape[0]))
+        img = resize(img, (height, width), mode='constant', preserve_range=True)
+        X_test[n] = img
+
+    return X_test, test_meta
 
 def raw_trainset(ix):
 
