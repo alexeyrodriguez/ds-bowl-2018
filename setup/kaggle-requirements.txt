@@ -29,7 +29,7 @@ MarkupSafe==1.0
 # PySocks==1.6.7
 # PyUpSet==0.1.1.post7
 # PyWavelets==0.5.2
-PyYAML==3.12
+PyYAML==5.4
 # Pygments==2.2.0
 # Pyphen==0.9.4
 # QtAwesome==0.4.4
