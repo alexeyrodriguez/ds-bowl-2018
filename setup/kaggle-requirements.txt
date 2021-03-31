@@ -254,7 +254,7 @@ line-profiler==2.1.2
 llvmlite==0.22.0
 lml==0.0.1
 locket==0.2.0
-lxml==4.1.0
+lxml==4.6.3
 marisa-trie==0.7.4
 markovify==0.7.1
 matplotlib==2.1.0
