@@ -9,7 +9,7 @@ Cython==0.26.1
 # Delorean==1.0.0
 Fiona==1.7.11.post1
 Flask==0.12.2
-Flask-Cors==3.0.3
+Flask-Cors==3.0.9
 Geohash==1.0
 ImageHash==4.0
 # Janome==0.3.6
