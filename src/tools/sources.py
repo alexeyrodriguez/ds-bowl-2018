@@ -239,7 +239,7 @@ def flattened_trainset_ex_2(width, height, channels, samples=None):
 
         resized_masks.append(masks)
 
-    return X_train, Y_train, centers, overlap, diffx1, diffy1, diffx2, diffy2, resized_masks, train_meta
+    return X_train, Y_train, centers, diffx1, diffy1, diffx2, diffy2, resized_masks, train_meta
 
 
 

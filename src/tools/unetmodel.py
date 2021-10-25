@@ -73,7 +73,6 @@ def u_net_model_ext(width, height, channels, centers_weight=None):
 
     # Predicting centers
     centers = Conv2D(1, (1, 1), activation='sigmoid', name='centers') (x)
-    overlaps = Conv2D(1, (1, 1), activation='sigmoid', name='overlaps') (x)
     widths = Conv2D(1, (1, 1), activation='linear', name='widths') (x)
     heights = Conv2D(1, (1, 1), activation='linear', name='heights') (x)
     diffx = Conv2D(1, (1, 1), activation='linear', name='diffx') (x)
@@ -88,12 +87,11 @@ def u_net_model_ext(width, height, channels, centers_weight=None):
     centers_loss = weighted_categorical_crossentropy([1.0, 1.0])
 
 
-    model = Model(inputs=[inputs], outputs=[outputs, centers, overlaps, widths, heights, diffx, diffy])
+    model = Model(inputs=[inputs], outputs=[outputs, centers, widths, heights, diffx, diffy])
     model.compile(optimizer='adam',
                   loss={
                       'mask': 'binary_crossentropy',
                       'centers': 'binary_crossentropy',
-                      'overlaps': 'binary_crossentropy',
 #                      'centers': centers_loss,
 #                      'overlaps': centers_loss,
                       'widths': mean_squared_error_masked,
@@ -104,7 +102,6 @@ def u_net_model_ext(width, height, channels, centers_weight=None):
                   loss_weights={
                       'mask': 50,
                       'centers': 10000,
-                      'overlaps': 50,
                       'widths': 150,
                       'heights': 150,
                       'diffx': 150,
