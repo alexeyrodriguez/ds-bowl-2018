@@ -19,15 +19,17 @@ from skimage import exposure as skexposure
 
 
 
-DATA_ROOT = '/data/contest_data'
+DATA_ROOT = '/home/jupyter/dsb-2018'
 TRAIN_PATH = DATA_ROOT + '/stage1_train/'
 TEST_PATH = DATA_ROOT + '/stage1_test/'
-MODEL_PATH = '/data/models'
+MODEL_PATH = '/home/jupyter/dsb-2018/models'
 
-def flattened_trainset(width, height, channels):
+def flattened_trainset(width, height, channels, samples=None):
 
     # Get train IDs
     train_ids = next(os.walk(TRAIN_PATH))[1]
+    if samples is not None:
+        train_ids = train_ids[:samples]
 
     # Get and resize train images and masks
     X_train = np.zeros((len(train_ids), height , width, channels), dtype=np.uint8)
@@ -43,8 +45,8 @@ def flattened_trainset(width, height, channels):
         mask = np.zeros((height, width, 1), dtype=np.bool)
         for mask_file in next(os.walk(path + '/masks/'))[2]:
             mask_ = imread(path + '/masks/' + mask_file)
-            mask_ = np.expand_dims(resize(mask_, (height, width), mode='constant', 
-                                          preserve_range=True), axis=-1)
+            mask_ = resize(mask_, (height, width), mode='constant', preserve_range=True) > 0
+            mask_ = np.expand_dims(mask_, axis=-1)
             mask = np.maximum(mask, mask_)
         Y_train[n] = mask
 
@@ -66,7 +68,7 @@ def bounds_size(bounds):
 def bounds_center(bounds):
     (start_x, _), (start_y, _) = bounds
     width, height = bounds_size(bounds)
-    return int(start_x + width / 2 - 1), int(start_y + height / 2 - 1)
+    return int(start_x + width / 2.0 - 1), int(start_y + height / 2.0 - 1)
 
 def mask_centers_sizes(masks):
     shape = masks[0].shape
@@ -84,14 +86,62 @@ def mask_centers_sizes(masks):
         widths[y, x] = w
         heights[y, x] = h
         # Hack to easily be able to extract a mask for training time
+        # 0.01 for mask hack
+
         diffx = diffx + (mask > 0).astype('float') * (np.outer(np.ones(H), np.arange(W)) - x + 0.01)
         diffy = diffy + (mask > 0).astype('float') * (np.outer(np.arange(H), np.ones(W)) - y + 0.01)
     return centers, widths, heights, diffx, diffy
 
-def flattened_trainset_ex(width, height, channels):
+
+def mask_centers_sizes_2(masks):
+    '''
+    Function to extract centers and bounding boxes from masks.
+    The bounding boxes specify the delta to sides from the center.
+    E.g. Bounding box is specified by:
+     * Left top corner (center_x - diffx1, center_y - diffy1)
+     * Right bottom corner: (center_x + diffx2, center_y + diffy2)
+     
+    It also extracts overlaps but these are not used
+    '''
+    shape = masks[0].shape
+    H, W = shape
+    overlap = np.zeros(shape=shape).astype('int')
+    centers = np.zeros(shape=shape).astype('int')
+    diffx1 = np.zeros(shape=shape)
+    diffy1 = np.zeros(shape=shape)
+    diffx2 = np.zeros(shape=shape)
+    diffy2 = np.zeros(shape=shape)
+
+    for mask in masks:
+        (x1, x2), (y1, y2) = inclusive_bounds(mask)
+        bounds = inclusive_bounds(mask)
+        x, y = bounds_center(bounds)
+        centers[y, x] = 1
+
+        # Hack to easily be able to extract a mask for training time
+        # 0.01 for mask hack
+        diffx1 = diffx1 + (mask > 0).astype('float') * (np.outer(np.ones(H), np.arange(W)) - x1 + 0.01)
+        diffy1 = diffy1 + (mask > 0).astype('float') * (np.outer(np.arange(H), np.ones(W)) - y1 + 0.01)
+        diffx2 = diffx2 + (mask > 0).astype('float') * (np.outer(np.ones(H), np.arange(W)) - x2 + 0.01)
+        diffy2 = diffy2 + (mask > 0).astype('float') * (np.outer(np.arange(H), np.ones(W)) - y2 + 0.01)
+        overlap = overlap + (mask > 0).astype('float')
+        
+    overlap = overlap > 1.0
+    diffx1 = diffx1 * (overlap < 0.5).astype('float')
+    diffy1 = diffy1 * (overlap < 0.5).astype('float')
+    diffx2 = diffx2 * (overlap < 0.5).astype('float')
+    diffy2 = diffy2 * (overlap < 0.5).astype('float')
+
+
+    return centers, overlap, diffx1, diffy1, diffx2, diffy2
+
+
+def flattened_trainset_ex(width, height, channels, samples=None):
 
     # Get train IDs
     train_ids = next(os.walk(TRAIN_PATH))[1]
+    if samples is not None:
+        train_ids = train_ids[:samples]
 
     # Get and resize train images and masks
     X_train = np.zeros((len(train_ids), height , width, channels), dtype=np.uint8)
@@ -117,8 +167,8 @@ def flattened_trainset_ex(width, height, channels):
 
         for mask_file in next(os.walk(path + '/masks/'))[2]:
             mask_ = imread(path + '/masks/' + mask_file)
-            mask_ = np.expand_dims(resize(mask_, (height, width), mode='constant',
-                                          preserve_range=True), axis=-1)
+            mask_ = resize(mask_, (height, width), mode='constant', preserve_range=True) > 0
+            mask_ = np.expand_dims(mask_, axis=-1)
             mask = np.maximum(mask, mask_)
             masks.append(np.squeeze(mask_))
 
@@ -133,6 +183,65 @@ def flattened_trainset_ex(width, height, channels):
         resized_masks.append(masks)
 
     return X_train, Y_train, centers, widths, heights, diffx, diffy, resized_masks, train_meta
+
+def flattened_trainset_ex_2(width, height, channels, samples=None):
+    '''
+    Extract data from data set: input, merged resized masks, resized masks
+    Also generate derived data: centers for each mask, deltas to bounding boxes, overlaps
+    The function and dependent functions are monstruous but emphasis was on quick iteration
+    '''
+
+    # Get train IDs
+    train_ids = next(os.walk(TRAIN_PATH))[1]
+    if samples is not None:
+        train_ids = train_ids[:samples]
+
+    # Get and resize train images and masks
+    X_train = np.zeros((len(train_ids), height , width, channels), dtype=np.uint8)
+    Y_train = np.zeros((len(train_ids), height, width, 1), dtype=np.bool)
+
+    centers = np.zeros((len(train_ids), height, width, 1), dtype=np.int)
+    overlap = np.zeros((len(train_ids), height, width, 1), dtype=np.int)
+    diffx1 = np.zeros((len(train_ids), height, width, 1))
+    diffy1 = np.zeros((len(train_ids), height, width, 1))
+    diffx2 = np.zeros((len(train_ids), height, width, 1))
+    diffy2 = np.zeros((len(train_ids), height, width, 1))
+
+
+    train_meta = []
+    resized_masks = []
+
+    for n, id_ in tqdm(enumerate(train_ids), total=len(train_ids)):
+        path = TRAIN_PATH + id_
+        img = imread(path + '/images/' + id_ + '.png')[:,:,:channels]
+        train_meta.append((id_, img.shape[1], img.shape[0]))
+        img = resize(img, (height, width), mode='constant', preserve_range=True)
+        X_train[n] = img
+        mask = np.zeros((height, width, 1), dtype=np.bool)
+        masks = []
+
+        for mask_file in next(os.walk(path + '/masks/'))[2]:
+            mask_ = imread(path + '/masks/' + mask_file)
+            mask_ = resize(mask_, (height, width), mode='constant', preserve_range=True) > 0
+            mask_ = np.expand_dims(mask_, axis=-1)
+            mask = np.maximum(mask, mask_)
+            masks.append(np.squeeze(mask_))
+
+        Y_train[n] = mask
+
+        mcenters, moverlaps, mdiffx1, mdiffy1, mdiffx2, mdiffy2 = mask_centers_sizes_2(masks)
+        centers[n] = np.expand_dims(mcenters, axis=-1)
+        overlap[n] = np.expand_dims(moverlaps, axis=-1)
+        diffx1[n] = np.expand_dims(mdiffx1, axis=-1)
+        diffy1[n] = np.expand_dims(mdiffy1, axis=-1)
+        diffx2[n] = np.expand_dims(mdiffx2, axis=-1)
+        diffy2[n] = np.expand_dims(mdiffy2, axis=-1)
+
+        resized_masks.append(masks)
+
+    return X_train, Y_train, centers, overlap, diffx1, diffy1, diffx2, diffy2, resized_masks, train_meta
+
+
 
 def flattened_testset_ex(width, height, channels):
 
