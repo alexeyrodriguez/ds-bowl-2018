@@ -4,7 +4,7 @@ from . import rect
 
 def extract_rectangles(mask, widths, heights, diffx, diffy):
     diffx = np.squeeze(diffx)
-    diffy = np.squeeze(diffx)
+    diffy = np.squeeze(diffy)
     widths = np.squeeze(widths)
     heights = np.squeeze(heights)
 
@@ -25,28 +25,54 @@ def extract_rectangles(mask, widths, heights, diffx, diffy):
 
     return merged_rectangles
 
+def get_rects_from_centers(centers, diffx1, diffx2, diffy1, diffy2, thr=0.0):
+    rects = []
+    for x in range(128):
+        for y in range(128):
+            if centers[y, x] > thr:
+                rects.append((int(x-diffx1[y,x]), int(y-diffy1[y,x]), int(x-diffx2[y,x]), int(y-diffy2[y,x])))
+    return rects
 
-def extract_masks(mask, widths, heights, diffx, diffy):
-    rects = extract_rectangles(mask, widths, heights, diffx, diffy)
+def extract_masks(mask, rects, thr=0.5):
+    mask = mask.copy().squeeze() >= thr
+    shp = mask.shape[:2]
     masks = []
-    for rect in rects:
-        x1, y1, x2, y2 = rect
-        aux_mask = np.zeros(mask.shape)
+    for x1, y1, x2, y2 in rects:
+        aux_mask = np.zeros(shp)
         aux_mask[int(y1):int(y2)+1, int(x1):int(x2)] = 1
         masks.append(mask * aux_mask)
     return masks
 
 def iou(m1, m2):
-    intersection = (m1*m2).flatten().sum()
-    union = float(m1.flatten().sum() + m2.flatten().sum() - intersection)
-    return float(intersection) / union
+    intersection = (m1*m2)
+    union = float(m1.flatten().sum() + m2.flatten().sum() - intersection.flatten().sum())
+    res = float(intersection.flatten().sum()) / union
+    return res
 
-def agg_iou(masks_gt, masks):
-    masks_gt = [(m>0).astype('int') for m in masks_gt]
-    masks = [(m>0).astype('int') for m in masks]
-    return [(i, j, iou(m1, m2))
-            for i, m1 in enumerate(masks_gt)
-            for j, m2 in enumerate(masks)]
+def agg_iou(masks_gt, masks, thr=0.0):
+    masks_gt = [(m>thr).astype('int') for m in masks_gt]
+    masks = [(m>thr).astype('int') for m in masks]
+    cands = np.zeros((len(masks_gt), len(masks)))
+    
+    # Compare all ground truths to masks
+    for i, m1 in enumerate(masks_gt):
+        for j, m2 in enumerate(masks):
+            cands[i, j] = iou(m1, m2)
+            
+    # Descending ordering induced by index
+    ys, xs = np.unravel_index(np.argsort(-cands, axis=None), cands.shape)
+    
+    # Select matches greedily
+    vis_ys = set()
+    vis_xs = set()
+    ious = []
+    for y, x in zip(ys, xs):
+        if y not in vis_ys and x not in vis_xs:
+            ious.append((y, x, cands[y, x]))
+            vis_ys.add(y)
+            vis_xs.add(x)
+    
+    return ious
 
 def precision_at_thr(ious, thr):
     number_gt = len(set([iou[0] for iou in ious]))
@@ -64,5 +90,7 @@ def precision_at_thr(ious, thr):
 def precision_iou(masks_gt, masks):
     ious = agg_iou(masks_gt, masks)
     thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
-    return np.mean([precision_at_thr(ious, threshold) for threshold in thresholds])
+    precisions = [precision_at_thr(ious, threshold) for threshold in thresholds]
+    # print(precisions)
+    return np.mean(precisions)
 
