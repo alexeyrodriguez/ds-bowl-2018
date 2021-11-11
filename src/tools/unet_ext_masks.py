@@ -26,11 +26,13 @@ def extract_rectangles(mask, widths, heights, diffx, diffy):
     return merged_rectangles
 
 def get_rects_from_centers(centers, diffx1, diffx2, diffy1, diffy2, thr=0.0):
+    def r(x):
+        return int(np.round(x))
     rects = []
     for x in range(128):
         for y in range(128):
             if centers[y, x] > thr:
-                rects.append((int(x-diffx1[y,x]), int(y-diffy1[y,x]), int(x-diffx2[y,x]), int(y-diffy2[y,x])))
+                rects.append((r(x-diffx1[y,x]), r(y-diffy1[y,x]), r(x-diffx2[y,x]), r(y-diffy2[y,x])))
     return rects
 
 def extract_masks(mask, rects, thr=0.5):
@@ -71,6 +73,16 @@ def agg_iou(masks_gt, masks, thr=0.0):
             ious.append((y, x, cands[y, x]))
             vis_ys.add(y)
             vis_xs.add(x)
+            
+    # Some masks in the ground truth were not matched, add entries for score computation
+    for i, _ in enumerate(masks_gt):
+        if not i in vis_ys:
+            ious.append((i, -1, 0.0))
+    
+    # Some predictions were not matched, add entries for score computation
+    for j, _ in enumerate(masks):
+        if not j in vis_xs:
+            ious.append((-1, j, 0.0))
     
     return ious
 

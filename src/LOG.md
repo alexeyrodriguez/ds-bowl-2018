@@ -1,3 +1,16 @@
+Thursday November 11, 2021
+==========================
+
+Precision for IOU drops for the first image because it turns out
+I was using ground truth centers for predicting rectangles rather than
+predictions. Once this was fixed the IOU precision becomes 0.34.
+
+Also added to the IOU computation unmatched ground truths and masks (IOU of 0)
+
+Applied rounding when converting to ints, IOU precision goes up to 0.428.
+
+
+
 Monday October 25, 2021
 =======================
 
@@ -5,7 +18,8 @@ Today:
 * Encapsulate some functionality better
 * Debug which masks decrease the IOU-derived scores
 
-
+* IOUs for smallest images is the smallest. Could we try to increase the pixel precision for the
+  smallest images? IOUs at this point (0.366, 0.38, 0.464, 0.558)
 
 
 Monday October 18, 2021
