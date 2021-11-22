@@ -1,3 +1,19 @@
+Friday November 19, 2021
+========================
+
+Reproduced last result, IOU precision is at 0.46. 45.2 on a second training with 35 and 36 recovered rectangles respectively.
+First without weights, second with weights.
+
+A second run throws 33 recovered rectangles with low IOU precision (0.366).
+
+Before runnning a proper hyper param search I'd like to reduce variance to informally
+evaluate whether weights will help.
+
+Example best run with IOU precision of 0.5 with a maximum of 0.97 IOU.
+
+Ending experiments due to AI Platform Notebook GPU training being broken with no change to driver or python package setup.
+It seems that an upgrade in AI Platform Infrastructure broke the notebook, GPUs are no longer editable.
+
 Thursday November 11, 2021
 ==========================
 
