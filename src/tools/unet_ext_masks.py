@@ -103,6 +103,16 @@ def precision_iou(masks_gt, masks):
     ious = agg_iou(masks_gt, masks)
     thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
     precisions = [precision_at_thr(ious, threshold) for threshold in thresholds]
-    # print(precisions)
     return np.mean(precisions)
 
+def batch_precision_iou(masks_gts, pty, ptc, ptdx1, ptdx2, ptdy1, ptdy2, thr=0.2):
+    res = []
+    for ix, masks_gt in enumerate(masks_gts):
+        rects = get_rects_from_centers(ptc[ix], ptdx1[ix], ptdx2[ix], ptdy1[ix], ptdy2[ix], thr)
+        rects = rect.merge(rects)
+        masks = extract_masks(pty[ix], rects, thr=0.35)
+        res.append(precision_iou(masks_gt, masks))
+
+    print(res)
+    return np.array(res).mean()
+    

@@ -57,7 +57,18 @@ def mean_squared_error_masked(y_true, y_pred):
     mask = K.sign(K.abs(y_true))
     return K.sum(K.square(y_pred - y_true) * mask, axis=-1) / (K.sum(mask, axis=-1) + 0.1)
 
-def u_net_model_ext(width, height, channels, centers_weight=None):
+import keras.backend as K
+
+def weighted_binary_crossentropy(y_masked_true, y_pred):
+    y_true = tf.slice(y_masked_true, [0, 0, 0, 0], [-1, -1, -1, 1])
+    y_mask = tf.slice(y_masked_true, [0, 0, 0, 1], [-1, -1, -1, 1])
+    bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+    return bce(y_true, y_pred, sample_weight=y_mask)
+    #return bce(y_true, y_pred)
+
+
+
+def u_net_model_ext(width, height, channels, centers_weight=None, mask_with_weights=False):
     inputs = Input((height, width, channels))
     s = Lambda(lambda x: x / 255) (inputs)
     
@@ -86,11 +97,16 @@ def u_net_model_ext(width, height, channels, centers_weight=None):
         centers_loss = 'binary_crossentropy'
     centers_loss = weighted_categorical_crossentropy([1.0, 1.0])
 
+    if mask_with_weights:
+        mask_loss = weighted_binary_crossentropy
+    else:
+        mask_loss = 'binary_crossentropy'
 
     model = Model(inputs=[inputs], outputs=[outputs, centers, widths, heights, diffx, diffy])
     model.compile(optimizer='adam',
                   loss={
-                      'mask': 'binary_crossentropy',
+                      'mask': mask_loss,
+#                      'mask': 'binary_crossentropy',
                       'centers': 'binary_crossentropy',
 #                      'centers': centers_loss,
 #                      'overlaps': centers_loss,

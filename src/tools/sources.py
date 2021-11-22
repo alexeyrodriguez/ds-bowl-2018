@@ -206,6 +206,8 @@ def flattened_trainset_ex_2(width, height, channels, samples=None):
     diffy1 = np.zeros((len(train_ids), height, width, 1))
     diffx2 = np.zeros((len(train_ids), height, width, 1))
     diffy2 = np.zeros((len(train_ids), height, width, 1))
+    mask_weights_all = np.zeros((len(train_ids), height, width, 1), dtype=np.float)
+
 
 
     train_meta = []
@@ -219,12 +221,14 @@ def flattened_trainset_ex_2(width, height, channels, samples=None):
         X_train[n] = img
         mask = np.zeros((height, width, 1), dtype=np.bool)
         masks = []
+        mask_weights = np.ones((height, width, 1), dtype=np.float)
 
         for mask_file in next(os.walk(path + '/masks/'))[2]:
             mask_ = imread(path + '/masks/' + mask_file)
             mask_ = resize(mask_, (height, width), mode='constant', preserve_range=True) > 0
             mask_ = np.expand_dims(mask_, axis=-1)
             mask = np.maximum(mask, mask_)
+            mask_weights = mask_weights + 50 * mask_ * (1 / mask_.sum())
             masks.append(np.squeeze(mask_))
 
         Y_train[n] = mask
@@ -236,10 +240,12 @@ def flattened_trainset_ex_2(width, height, channels, samples=None):
         diffy1[n] = np.expand_dims(mdiffy1, axis=-1)
         diffx2[n] = np.expand_dims(mdiffx2, axis=-1)
         diffy2[n] = np.expand_dims(mdiffy2, axis=-1)
+        mask_weights_all[n] = mask_weights
+
 
         resized_masks.append(masks)
 
-    return X_train, Y_train, centers, diffx1, diffy1, diffx2, diffy2, resized_masks, train_meta
+    return X_train, Y_train, centers, diffx1, diffy1, diffx2, diffy2, resized_masks, mask_weights_all, train_meta
 
 
 
