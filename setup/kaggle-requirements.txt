@@ -53,7 +53,7 @@ Unidecode==1.0.22
 # anaconda-project==0.8.0
 annoy==1.11.4
 appdirs==1.4.3
-arrow==0.12.1
+arrow==0.15.1
 asn1crypto==0.22.0
 # astor==0.6.2
 # astroid==1.5.3
