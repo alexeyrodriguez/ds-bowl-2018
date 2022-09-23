@@ -342,7 +342,7 @@ prettytable==0.7.2
 progressbar2==3.36.0
 prompt-toolkit==1.0.15
 pronouncing==0.1.5
-protobuf==3.5.2
+protobuf==3.18.3
 psutil==5.4.0
 ptyprocess==0.5.2
 pudb==2017.1.4
