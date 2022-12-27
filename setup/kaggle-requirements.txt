@@ -423,7 +423,7 @@ scipy==1.0.0
 # scs==2.0.2
 seaborn==0.8.1
 sentencepiece==0.0.4
-setuptools==38.5.2
+setuptools==65.5.1
 simplegeneric==0.8.1
 singledispatch==3.4.0.3
 six==1.11.0
