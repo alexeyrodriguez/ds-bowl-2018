@@ -407,7 +407,7 @@ resampy==0.2.0
 revrand==0.6.5
 rf-perm-feat-import==0.1
 rope==0.10.5
-rsa==3.4.2
+rsa==4.7
 # ruamel-yaml==0.11.14 # strange installation error
 s2sphere==0.2.5
 s3transfer==0.1.13
